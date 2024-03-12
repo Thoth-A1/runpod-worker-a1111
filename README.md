@@ -7,6 +7,7 @@
 [![Docker Image](https://github.com/runpod-workers/worker-template/actions/workflows/CD-docker_dev.yml/badge.svg)](https://github.com/runpod-workers/worker-template/actions/workflows/CD-docker_dev.yml)
 
 This worker is a RunPod worker that uses the Stable Diffusion model for AI tasks. The worker is built upon the Stable Diffusion WebUI, which is a user interface for Stable Diffusion AI models.
+
 </div>
 
 ## Model
@@ -25,7 +26,7 @@ The worker can be run using the start.sh script. This script starts the init sys
 
 ## API
 
-The worker provides an API for inference. The API is set up using supervisor, and the configuration is specified in webui_api.conf. The API runs on port 3000.
+The worker provides an API for inference. The API is set up using supervisor, and the configuration is specified in webui_api.conf. The API runs on port 7861.
 
 ## Serverless Handler
 

@@ -20,8 +20,13 @@ RUN . /clone.sh BLIP https://github.com/salesforce/BLIP.git 48211a1594f1321b00f1
     . /clone.sh clip-interrogator https://github.com/pharmapsychotic/clip-interrogator 2486589f24165c8e3b303f84e9dbbea318df83e8 && \
     . /clone.sh generative-models https://github.com/Stability-AI/generative-models 45c443b316737a4ab6e40413d7794a7f5657c19f
 
-RUN apk add --no-cache wget && \
-    wget -q -O /model.safetensors https://civitai.com/api/download/models/15236
+    # original:
+    # wget -q -O /model.safetensors https://civitai.com/api/download/models/15236
+    # SDXL base:
+    # wget -q -O /model.safetensors https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors
+    # DreamshaperXL:
+RUN apk add --no-cache wget
+RUN wget -O /model.safetensors https://civitai.com/api/download/models/126688?type=Model&format=SafeTensor&size=full&fp=fp16
 
 
 
@@ -30,7 +35,7 @@ RUN apk add --no-cache wget && \
 # ---------------------------------------------------------------------------- #
 FROM python:3.10.9-slim as build_final_image
 
-ARG SHA=5ef669de080814067961f28357256e8fe27544f4
+ARG SHA=3e0146f9bdd79ed13d1fed729c76b97f7ab91587
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PIP_PREFER_BINARY=1 \
@@ -52,13 +57,23 @@ RUN --mount=type=cache,target=/cache --mount=type=cache,target=/root/.cache/pip 
     pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
 RUN --mount=type=cache,target=/root/.cache/pip \
-    git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git && \
+    # if not dev branch, you get this error:
+    #   27.29 ModuleNotFoundError: No module named 'torchvision.transforms.functional_tensor'
+    # See: https://github.com/AUTOMATIC1111/stable-diffusion-webui/issues/13985#issuecomment-1814870368
+    git clone -b dev https://github.com/AUTOMATIC1111/stable-diffusion-webui.git && \
     cd stable-diffusion-webui && \
     git reset --hard ${SHA}
 #&& \ pip install -r requirements_versions.txt
 
+# Add extensions to stable-diffusion-webui
+
+RUN cd ${ROOT}/extensions && \
+    git clone https://github.com/Mikubill/sd-webui-controlnet.git && \
+    git clone https://github.com/NVIDIA/Stable-Diffusion-WebUI-TensorRT.git && \
+    cd
+
 COPY --from=download /repositories/ ${ROOT}/repositories/
-COPY --from=download /model.safetensors /model.safetensors
+COPY sd_xl_base_1.0.safetensors /model.safetensors
 RUN mkdir ${ROOT}/interrogate && cp ${ROOT}/repositories/clip-interrogator/data/* ${ROOT}/interrogate
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -r ${ROOT}/repositories/CodeFormer/requirements.txt
